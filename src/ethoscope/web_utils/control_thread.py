@@ -103,7 +103,9 @@ class ControlThread(Thread):
     
     #some classes do not need to be offered as choices to the user in normal conditions
     #these are shown only if the machine is not a PI
-    _is_a_rPi = isMachinePI() and hasPiCamera() and not isExperimental()
+    _is_a_rPi = isMachinePI() and hasPiCamera() 
+    _isExperimental = isExperimental()
+    
     _hidden_options = {'camera', 'result_writer'}
     
     for k in _option_dict:
@@ -199,7 +201,7 @@ class ControlThread(Thread):
         for key, value in self._option_dict.items():
             # check if the options for the remote class will be visible
             # they will be visible only if they have a description, and if we are on a PC or they are not hidden
-            if (self._is_a_rPi and key not in self._hidden_options) or not self._is_a_rPi:
+            if key not in self._hidden_options or not self._is_a_rPi or isExperimental:
                 out[key] = []
                 for p in value["possible_classes"]:
                     try:
@@ -409,7 +411,6 @@ class ControlThread(Thread):
             except Exception as e:
                 logging.error("Could not load previous state for unexpected reason:")
                 raise e
-                #cam, rw, rois, TrackerClass, tracker_kwargs, hardware_connection, StimulatorClass, stimulator_kwargs = self._set_tracking_from_scratch()
             
             with rw as result_writer:
                 if cam.canbepickled:
