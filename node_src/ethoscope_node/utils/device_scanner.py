@@ -196,10 +196,12 @@ class Device(Thread):
     _log_page = "data/log"
     _static_page = "static"
     _controls_page = "controls"
-    _allowed_instructions_status = { "stream": ["stopped"],
+    _allowed_instructions_status = { #instruction: ["condition in which it is allowed"] 
                                      "start": ["stopped"],
+                                     "makemask" : ["stopped", "making mask"],
                                      "start_record": ["stopped"],
-                                     "stop": ["streaming", "running", "recording"],
+                                     "stream": ["stopped"],
+                                     "stop": ["streaming", "running", "recording", "making mask"],
                                      "poweroff": ["stopped"],
                                      "not_in_use": []}
 
@@ -332,14 +334,15 @@ class Device(Thread):
         except Exception as e:
             logging.warning(traceback.format_exc(e))
 
-
-
-
     @retry(ScanException, tries=3, delay=1, backoff=1)
     def _get_json(self, url,timeout=5, post_data=None):
+        '''
+        Fetches most of the internal communication fromt the ethoscopes to the server
+        HTTP Errors are not passed through
+        '''
 
         try:
-            req = urllib2.Request(url, data=post_data, headers={'Content-Type': 'application/json'})            
+            req = urllib2.Request(url, data=post_data, headers={'Content-Type': 'application/json'})
             f = urllib2.urlopen(req, timeout=timeout)
             message = f.read()
             if not message:
@@ -351,12 +354,8 @@ class Device(Thread):
             except ValueError:
                 # logging.error("Could not parse response from %s as JSON object" % self._id_url)
                 raise ScanException("Could not parse Json object")
-        except urllib2.HTTPError as e:
-            #raise ScanException("Error" + str(e.code))
-            return e
         except urllib2.URLError as e:
-            #raise ScanException("Error" + str(e.reason))
-            return e
+            raise ScanException(str(e))
         except Exception as e:
             raise ScanException("Unexpected error" + str(e))
         
@@ -375,7 +374,6 @@ class Device(Thread):
 
         self._info["ip"] = self._ip
         self._id = resp['id']
-
 
     def _reset_info(self):
         self._info = {"status": "not_in_use"}

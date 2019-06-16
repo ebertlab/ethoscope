@@ -6,6 +6,7 @@ from optparse import OptionParser
 from ethoscope.web_utils.control_thread import ControlThread
 from ethoscope.web_utils.helpers import get_machine_info, get_version, file_in_dir_r
 from ethoscope.web_utils.record import ControlThreadVideoRecording
+from ethoscope.web_utils.make_mask import ControlThreadMakeMask
 from subprocess import call
 import json
 import os
@@ -23,7 +24,9 @@ api = Bottle()
 
 tracking_json_data = {}
 recording_json_data = {}
+maskmaking_json_data = {}
 ETHOSCOPE_DIR = None
+ETHOSCOPE_UPLOAD = None
 
 
 class WrongMachineID(Exception):
@@ -116,10 +119,38 @@ def rm_static_file(id):
 def controls(id, action):
     global control
     global record
+    
     if id != machine_id:
         raise WrongMachineID
+        
 
-    if action == 'start':
+    if action == 'makemask':
+        data = request.json
+        
+        if data is None:
+            data = { 
+                     "camera": {"name":"OurPiCameraAsync", "arguments":{} },
+                     "roi_builder": {"name" : "TargetGridROIBuilder", "arguments": { "bottom_margin": 0.15, "horizontal_fill": 0.9, "left_margin": 0.1, "n_cols": 2, "n_rows": 2, "right_margin": 0.1, "top_margin": 0.15, "vertical_fill": 0.9} }
+                   }
+
+        maskmaking_json_data.update(data)
+
+        if info(id)['status'] == 'making mask' and control != None:
+
+            control.refresh(data=maskmaking_json_data)
+            
+        else:
+        
+            control = ControlThreadMakeMask(machine_id=machine_id,
+                                    name=machine_name,
+                                    version=version,
+                                    mask_dir=os.path.join(ETHOSCOPE_UPLOAD, 'masks'),
+                                    data=maskmaking_json_data)
+            control.start()
+            
+        return info(id)
+
+    elif action == 'start':
         data = request.json
         tracking_json_data.update(data)
         control = None
@@ -133,7 +164,7 @@ def controls(id, action):
         return info(id)
 
     elif action in ['stop', 'close', 'poweroff']:
-        if control.info['status'] == 'running' or control.info['status'] == "recording" or control.info['status'] == "streaming" :
+        if control.info['status'] in ['running', "recording", "streaming", "making mask"] :
             # logging.info("Stopping monitor")
             logging.warning("Stopping monitor")
             control.stop()
@@ -203,10 +234,12 @@ def user_options(id):
     '''
     if machine_id != id:
         raise WrongMachineID
+        
     return {
-        "tracking":ControlThread.user_options(),
-        "recording":ControlThreadVideoRecording.user_options(),
-        "streaming": {} }
+        "tracking": ControlThread.user_options(),
+        "recording": ControlThreadVideoRecording.user_options(),
+        "streaming": {},
+        "making_mask" : ControlThreadMakeMask.user_options() }
 
 @api.get('/data/log/<id>')
 @error_decorator
@@ -318,25 +351,25 @@ if __name__ == '__main__':
     if option_dict["run"] or control.was_interrupted:
         control.start()
 
-#    try:
-#        run(api, host='0.0.0.0', port=port, server='cherrypy',debug=option_dict["debug"])
-        
     try:
-        SERVER = "cheroot"
-        #######To be remove when bottle changes to version 0.13
-        try:
-            #This checks if the patch has to be applied or not. We check if bottle has declared cherootserver
-            #we assume that we are using cherrypy > 9
-            from bottle import CherootServer
-        except:
-            #Trick bottle to think that cheroot is actulay cherrypy server, modifies the server_names allowed in bottle
-            #so we use cheroot in background.
-            SERVER="cherrypy"
-            server_names["cherrypy"]=CherootServer(host='0.0.0.0', port=PORT)
-            logging.warning("Cherrypy version is bigger than 9, we have to change to cheroot server")
-            pass
-        #########
-        run(api, host='0.0.0.0', port=PORT, debug=DEBUG, server=SERVER)
+        run(api, host='0.0.0.0', port=PORT, server='cherrypy', debug=DEBUG)
+        
+    # try:
+        # SERVER = "cheroot"
+        # #######To be remove when bottle changes to version 0.13
+        # try:
+            # #This checks if the patch has to be applied or not. We check if bottle has declared cherootserver
+            # #we assume that we are using cherrypy > 9
+            # from bottle import CherootServer
+        # except:
+            # #Trick bottle to think that cheroot is actulay cherrypy server, modifies the server_names allowed in bottle
+            # #so we use cheroot in background.
+            # SERVER="cherrypy"
+            # server_names["cherrypy"]=CherootServer(host='0.0.0.0', port=PORT)
+            # logging.warning("Cherrypy version is bigger than 9, we have to change to cheroot server")
+            # pass
+        # #########
+        # run(api, host='0.0.0.0', port=PORT, debug=DEBUG, server=SERVER)
         
         
         

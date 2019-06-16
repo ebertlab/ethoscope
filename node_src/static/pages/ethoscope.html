@@ -11,10 +11,52 @@
 
 
         <div class= "last_drawn_img">
-            <img ng-if="device.status == 'running' || device.status == 'recording'"  ng-src="{{device.url_img}}" alt="" width="480"></img>
-            <img ng-if="device.status == 'streaming'"  ng-src="{{device.url_stream}}" alt="" width=""></img>
+            <img class="preview-img" ng-if="device.status == 'running' || device.status == 'recording'"  ng-src="{{device.url_img}}" err-src="/static/img/image_spinner.gif" alt="" width="480"></img>
+            <img class="preview-img" ng-if="device.status == 'streaming'"  ng-src="{{device.url_stream}}" err-src="/static/img/image_spinner.gif" alt="" width=""></img>
         </div>
 
+
+      <div ng-if="device.status == 'making mask'" id="mask-making-wrapper" >
+          <div><img ng-src="{{device.url_img}}" err-src="/static/img/image_spinner.gif" alt="" width="480" id="mask-img"></img></div>
+          <div id="mask-options" >
+          <form name="optionsform">
+          <div id="user_options" ng-repeat="(name,option) in user_options.making_mask">
+              <ul class="option-list">
+                <li ng-repeat="opt in option">
+                    <input type=radio name={{opt.name}} value={{opt.name}} ng-model="selected_options.making_mask[name]['name']" ng-click="ethoscope.update_user_options.making_mask(name)">
+                    <strong data-toggle="tooltip" data-placement="top" title=" {{opt.overview}}" ng-init="description[opt.name] = false">{{opt.name}}</strong> <a href=""  ng-click="description[opt.name] = true" ng-if="description[opt.name]==false"> <icon class="fa fa-plus-square-o"> </icon></a>
+                    <a href="" ng-click="description[opt.name] = false" ng-if="description[opt.name]==true"> <icon class="fa fa-minus-square-o"> </icon></a>
+                    <div ng-if="description[opt.name] == true">
+                        {{opt.overview}}
+                    </div>
+                  <ul ng-if="selected_options.making_mask[name]['name']==opt.name">
+                        <li  ng-repeat="arg in opt.arguments">
+
+                                <select ng-if="arg.type == 'filepath'" id="input-{{arg.name}}" name={{arg.name}} ng-model="selected_options.making_mask[name]['arguments'][arg.name]" > <option value="">Available Movies</option><option ng:repeat="entry in videofiles" value="{{entry.fullpath}}">{{entry.filename | limitTo: 40}}{{entry.filename.length < 40 ? '' : '...'}}</option> </select>
+                                <input ng-if="arg.type == 'number'" id="input-{{arg.name}}" type=number width="3" name={{arg.name}} min={{arg.min}} max={{arg.max}} step={{arg.step}}  ng-model="selected_options.making_mask[name]['arguments'][arg.name]" >
+                                <input ng-if="arg.type == 'str'" id="input-{{arg.name}}" type=text name={{arg.name}}  ng-model="selected_options.making_mask[name]['arguments'][arg.name]"  >
+
+                                <div ng-if="arg.type == 'date_range'" class="input-group">
+                                    <input ng-if="arg.type == 'date_range'" date-range-picker class="form-control date-picker" name={{arg.name}} id="input-drp" type=hidden readonly ng-model="selected_options.making_mask[name]['arguments'][arg.name]" options="{timePicker: true, timePicker24Hour : true, timePickerIncrement: 30, drops: up , autoApply : true , autoUpdateInput : true, locale: { format: 'YYYY-MM-DD HH:mm:ss', separator : ' > ' }}" > 
+                                    <input ng-if="arg.type == 'date_range'" class="form-control" type=text  ng-model="selected_options.making_mask[name]['arguments'][arg.name].formatted" > 
+                                    <span class="input-group-addon"><i class="glyphicon glyphicon-calendar" onclick="$('#input-drp').data('daterangepicker').show();"></i></span>
+                                </div>
+
+                                <div ng-if="arg.type == 'datetime'" class="input-group">
+                                    <input ng-if="arg.type == 'datetime'" date-range-picker class="form-control date-picker" name={{arg.name}} id="input-{{arg.name}}" type=text  ng-model="selected_options.making_mask[name]['arguments'][arg.name]" options="{singleDatePicker: true, timePicker: true, timePicker24Hour : true, timePickerIncrement: 30, drops: up , autoApply : true , autoUpdateInput : true, locale: { format: 'YYYY-MM-DD HH:mm:ss' }}" > 
+                                    <span class="input-group-addon"><i class="glyphicon glyphicon-calendar"></i></span>
+                                </div>
+                                <label for="input-{{arg.name}}">{{arg.description}}</label>
+
+                        </li>
+                    </ul>
+                </li>
+              </ul>
+              <button type="button" class="btn btn-primary" ng-click="ethoscope.make_mask(selected_options.making_mask)">Update</button>
+          </div>
+        </form>
+        </div>
+      </div>
 
         <div ng-if="device.status == 'running' || device.status == 'recording'" >
         <div id="node-info" class="intro">
@@ -60,9 +102,18 @@
 
         <div ng-if="device.status != 'not_in_use'">
 
-            <button class="btn btn-success btn-xl" ng-if="device.status == 'stopped'"  data-toggle="modal" data-target="#startModal">Start tracking</button>
-
             <!-- Dropdown button code from https://codepen.io/raneio/pen/NbbZEM -->
+            <label class="dropdown" ng-if="device.status == 'stopped'">
+              <div class="dd-button">
+                Track
+              </div>
+              <input type="checkbox" class="dd-input" id="test">
+              <ul class="dd-menu">
+                <li data-toggle="modal" data-target="#startModal">Start Tracking</li>
+                <li data-toggle="modal" ng-class="{'disabled':!can_make_mask}" ng-click="!can_make_mask || ethoscope.make_mask()">New Mask</li>
+              </ul>
+            </label>
+
             <label class="dropdown" ng-if="device.status == 'stopped'">
               <div class="dd-button">
                 Video
@@ -75,6 +126,7 @@
             </label>
 
             <button class="btn btn-danger" ng-if="device.status == 'running' || device.status == 'recording' || device.status == 'streaming'"   data-toggle="modal" data-target="#stopTrackingModal">Stop</button>
+            <button class="btn btn-danger" ng-if="device.status == 'making mask'" ng-click="ethoscope.stop()">Exit Mask Making</button>
 
             <button class="btn btn-info disable" ng-if="device.status == 'stopping'" ng-click="ethoscope.alert('Please wait, system is stopping')">Stopping</button>
             <button class="btn btn-danger disable" ng-if="device.status == 'initialising'"  ng-click="ethoscope.alert('Please wait, system is starting')">Starting</button>

@@ -5,7 +5,6 @@ from collections import deque
 from ethoscope.utils.description  import DescribedObject
 from ethoscope.core.variables import *
 
-
 class NoPositionError(Exception):
     """
     Used to abort tracking. When it is raised within the ``_find_position`` method, data is inferred from previous position.
@@ -14,7 +13,7 @@ class NoPositionError(Exception):
 
 class BaseTracker(DescribedObject):
     # data_point = None
-    def __init__(self, roi,data=None):
+    def __init__(self, roi, data=None):
         """
         Template class for video trackers.
         A video tracker locate animal in a ROI.
@@ -126,7 +125,16 @@ class BaseTracker(DescribedObject):
         """
         return self._times
 
-    def _find_position(self,img, mask,t):
+    def _find_position(self, img, mask, t):
         raise NotImplementedError
 
+
+class DummyTracker(BaseTracker):
+    """
+    """
+    def __init__(self, roi):
+        super(DummyTracker, self).__init__(roi)
+        
+    def track(self):
+        pass
 

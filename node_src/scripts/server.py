@@ -66,7 +66,6 @@ def enable_cors():
 def get_favicon():
     return server_static(STATIC_DIR+'/img/favicon.ico')
 
-
 @app.get('/devices')
 @error_decorator
 def devices():

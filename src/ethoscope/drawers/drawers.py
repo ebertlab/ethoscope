@@ -37,7 +37,7 @@ class BaseDrawer(object):
             cv2.namedWindow(self._window_name, cv2.WINDOW_AUTOSIZE)
         self._last_drawn_frame = None
 
-    def _annotate_frame(self,img, positions, tracking_units):
+    def _annotate_frame(self, img, positions, tracking_units):
         """
         Abstract method defining how frames should be annotated.
         The `img` array, which is passed by reference, is meant to be modified by this method.
@@ -56,7 +56,7 @@ class BaseDrawer(object):
     def last_drawn_frame(self):
         return self._last_drawn_frame
 
-    def draw(self,img, positions, tracking_units):
+    def draw(self, img, positions, tracking_units, **kwargs):
         """
         Draw results on a frame.
 
@@ -71,7 +71,7 @@ class BaseDrawer(object):
 
         self._last_drawn_frame = img.copy()
 
-        self._annotate_frame(self._last_drawn_frame, positions,tracking_units)
+        self._annotate_frame(self._last_drawn_frame, positions, tracking_units, **kwargs)
 
         if self._draw_frames:
             cv2.imshow(self._window_name, self._last_drawn_frame )
@@ -103,8 +103,40 @@ class NullDrawer(BaseDrawer):
         :return:
         """
         super(NullDrawer,self).__init__( draw_frames=False)
-    def _annotate_frame(self,img, positions, tracking_units):
+        
+    def _annotate_frame(self, img, positions, tracking_units):
         pass
+
+class MaskDrawer(BaseDrawer):
+    def __init__(self):
+        """
+        A drawer with limited capabilites, made to annotate targets and mask (ROIs limits)
+        """
+        super(MaskDrawer,self).__init__(video_out=None, draw_frames=False)
+        
+    def _annotate_frame(self, img, positions=[], tracking_units=[], targets=[]):
+
+        if img is None:
+            return
+        
+        for target in targets:
+            x = int(target[0])
+            y = int(target[1])
+
+            cv2.line(img, (x-20, y-20), (x+20, y+20), (0,255,0), 2, LINE_AA)
+            cv2.line(img, (x+20, y-20), (x-20, y+20), (0,255,0), 2, LINE_AA)
+            
+        for track_u in tracking_units:
+
+            x,y = track_u.roi.offset
+            y += track_u.roi.rectangle[3]/2
+
+            cv2.putText(img, str(track_u.roi.idx), (x,y), cv2.FONT_HERSHEY_COMPLEX_SMALL, 1, (255,255,0))
+            black_colour = (0, 0,0)
+            roi_colour = (0, 255,0)
+            cv2.drawContours(img,[track_u.roi.polygon],-1, black_colour, 3, LINE_AA)
+            cv2.drawContours(img,[track_u.roi.polygon],-1, roi_colour, 1, LINE_AA)
+
 
 
 class DefaultDrawer(BaseDrawer):
@@ -121,7 +153,7 @@ class DefaultDrawer(BaseDrawer):
         """
         super(DefaultDrawer,self).__init__(video_out=video_out, draw_frames=draw_frames)
 
-    def _annotate_frame(self,img, positions, tracking_units):
+    def _annotate_frame(self, img, positions, tracking_units):
         if img is None:
             return
         for track_u in tracking_units:

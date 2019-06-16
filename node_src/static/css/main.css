@@ -51,6 +51,9 @@ p {
     color: red;
 }
 
+ul {
+    padding-left: 5px;
+    }
 
 li {
     text-align: left;
@@ -70,12 +73,13 @@ width: 200px;
 }
 
 input[type="number"] {
-width: 75px;
+width: 4em;
 }
 
 
 label {
-    display: block;
+    display: inline-block;
+    text-align: left;
     padding-top: 0.5em;
     font-weight: normal;
     font-style: italic;
@@ -209,3 +213,27 @@ label.dropdown {
   padding: 0;
   border-bottom: 1px solid #cccccc;
 }
+
+.preview-img {
+    border: 6px solid #ccc;
+    }
+
+#mask-making-wrapper {
+    padding-top: 10px;
+    display: flex;
+    justify-content: center;
+    border: 0px solid black;
+    overflow: auto; /* so the size of the wrapper is alway the size of the longest content */
+}
+#mask-img {
+    width: 480px;
+    border: 0px solid red;
+    margin-bottom: 100px;
+}
+#mask-options {
+    border: 0px solid green;
+    width: auto;
+    margin-left: 10px; /* considering the border you need to use a margin so the content does not float under the first div*/
+}
+
+

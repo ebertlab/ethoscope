@@ -16,7 +16,32 @@ app.directive('tooltip', function(){
     };
 });
 
+app.directive('errSrc', function() {
+  return {
+    link: function(scope, element, attrs) {
+
+      var watcher = scope.$watch(function() {
+          return attrs['ngSrc'];
+        }, function (value) {
+          if (!value) {
+            element.attr('src', attrs.errSrc);  
+          }
+      });
+
+      element.bind('error', function() {
+        element.attr('src', attrs.errSrc);
+      });
+
+      //unsubscribe on success
+      element.bind('load', watcher);
+
+    }
+  }
+});
+
 app.controller('ethoscopeController', function($scope, $http, $routeParams, $interval, $timeout, $location)  {
+    
+        spinner_gif_url = "/static/img/image_spinner.gif";
     
         device_id = $routeParams.device_id;
 //        var device_ip;
@@ -24,6 +49,8 @@ app.controller('ethoscopeController', function($scope, $http, $routeParams, $int
         $scope.ethoscope = {}; // to control the device
         $scope.showLog = false;
         $scope.can_stream = false;
+        $scope.can_make_mask = false;
+        
         var refresh_data = false;
         var spStart= new Spinner(opts).spin();
         var starting_tracking= document.getElementById('starting');
@@ -36,15 +63,22 @@ app.controller('ethoscopeController', function($scope, $http, $routeParams, $int
             $scope.can_stream = (typeof data.streaming !== 'undefined');
         });
         
+
+        $http.get('/device/'+device_id+'/user_options').success(function(data){
+            $scope.can_make_mask = (typeof data.making_mask !== 'undefined');
+        });
+
         
         $http.get('/device/'+device_id+'/user_options').success(function(data){
             $scope.user_options = {};
             $scope.user_options.tracking= data.tracking;
             $scope.user_options.recording= data.recording;
+            $scope.user_options.making_mask= data.making_mask;
 
             $scope.selected_options = {};
             $scope.selected_options.tracking = {};
             $scope.selected_options.recording = {};
+            $scope.selected_options.making_mask = {};
 
             for (var k in data.tracking){
                 $scope.selected_options.tracking[k]={};
@@ -63,6 +97,17 @@ app.controller('ethoscopeController', function($scope, $http, $routeParams, $int
                         $scope.selected_options.recording[k]['arguments'][data.recording[k][0]['arguments'][j]['name']]=data.recording[k][0]['arguments'][j]['default'];
                 }
             }
+            
+            for (var k in data.making_mask){
+                $scope.selected_options.making_mask[k]={};
+                $scope.selected_options.making_mask[k]['name']=data.making_mask[k][0]['name'];
+                $scope.selected_options.making_mask[k]['arguments']={};
+                for(var j=0;j<data.making_mask[k][0]['arguments'].length; j++){
+                        $scope.selected_options.making_mask[k]['arguments'][data.making_mask[k][0]['arguments'][j]['name']]=data.making_mask[k][0]['arguments'][j]['default'];
+                }
+            }
+
+            
         });
 
 
@@ -87,7 +132,6 @@ app.controller('ethoscopeController', function($scope, $http, $routeParams, $int
                 }
             }
         }
-
 
         $scope.ethoscope.update_user_options.recording = function(name){
             data=$scope.user_options;
@@ -119,6 +163,17 @@ app.controller('ethoscopeController', function($scope, $http, $routeParams, $int
             }
         };
 
+        $scope.ethoscope.make_mask = function(option){
+            if ($scope.can_make_mask) {
+                console.log("Starting the window to make a new mask")
+                $http.post('/device/'+device_id+'/controls/makemask', data = option).success(function(response){
+                    $scope.device.status = response.status;
+                    console.log(response);
+                });
+            }
+        };
+
+
         $scope.ethoscope.start_tracking = function(option){
             $("#startModal").modal('hide');
             spStart= new Spinner(opts).spin();
@@ -136,10 +191,10 @@ app.controller('ethoscopeController', function($scope, $http, $routeParams, $int
                     if(option[opt].arguments[arg].hasOwnProperty('formatted')) {
                         option[opt].arguments[arg] = option[opt].arguments[arg].formatted;
                     }
-                    console.log(option[opt].arguments[arg]);
+                    //console.log(option[opt].arguments[arg]);
                 }
             }
-
+                
             $http.post('/device/'+device_id+'/controls/start', data=option)
                  .success(function(data){$scope.device.status = data.status;});
 
