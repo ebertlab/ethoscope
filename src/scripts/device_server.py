@@ -318,31 +318,32 @@ if __name__ == '__main__':
     if option_dict["run"] or control.was_interrupted:
         control.start()
 
-#    try:
-#        run(api, host='0.0.0.0', port=port, server='cherrypy',debug=option_dict["debug"])
-        
     try:
-        SERVER = "cheroot"
-        #######To be remove when bottle changes to version 0.13
-        try:
-            #This checks if the patch has to be applied or not. We check if bottle has declared cherootserver
-            #we assume that we are using cherrypy > 9
-            from bottle import CherootServer
-        except:
-            #Trick bottle to think that cheroot is actulay cherrypy server, modifies the server_names allowed in bottle
-            #so we use cheroot in background.
-            SERVER="cherrypy"
-            server_names["cherrypy"]=CherootServer(host='0.0.0.0', port=PORT)
-            logging.warning("Cherrypy version is bigger than 9, we have to change to cheroot server")
-            pass
-        #########
-        run(api, host='0.0.0.0', port=PORT, debug=DEBUG, server=SERVER)
+        run(api, host='0.0.0.0', port=PORT, server='cherrypy',debug=DEBUG)
+        
+#    try:
+#        SERVER = "cheroot"
+#        #######To be remove when bottle changes to version 0.13
+#        try:
+#            #This checks if the patch has to be applied or not. We check if bottle has declared cherootserver
+#            #we assume that we are using cherrypy > 9
+#            from bottle import CherootServer
+#        except:
+#            #Trick bottle to think that cheroot is actulay cherrypy server, modifies the server_names allowed in bottle
+#            #so we use cheroot in background.
+#            SERVER="cherrypy"
+#            server_names["cherrypy"]=CherootServer(host='0.0.0.0', port=PORT)
+#            logging.warning("Cherrypy version is bigger than 9, we have to change to cheroot server")
+#            pass
+#        #########
+#        run(api, host='0.0.0.0', port=PORT, debug=DEBUG, server=SERVER)
         
         
         
     except Exception as e:
         logging.error(e)
         close(1)
+        
     finally:
         close()
 
