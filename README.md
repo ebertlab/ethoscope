@@ -1,3 +1,7 @@
+This is a fork of https://github.com/gilestrolab/ethoscope which tries to make Ethoscope work with current versions of python 3 (3.6.9) and OpenCV (>= 3.3)
+
+It follows the README of the original.
+
 Ethoscope
 ============
 
