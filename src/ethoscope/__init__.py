@@ -82,14 +82,7 @@ we developed an ``R`` package named `rethomics <https://github.com/gilestrolab/r
 
 """
 
-
-import core
-import hardware
-import stimulators
-import roi_builders
-import trackers
-import utils
-import web_utils
+__all__ = ["core", "hardware", "stimulators", "roi_builders", "trackers", "utils", "web_utils"]
 
 
 
