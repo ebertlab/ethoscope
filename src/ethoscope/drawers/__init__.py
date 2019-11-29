@@ -1,3 +1,5 @@
 __author__ = 'quentin'
 
-import drawers
+__all__ = ["drawers"]
+
+"""import drawers"""
