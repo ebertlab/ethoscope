@@ -61,16 +61,18 @@ class BaseROIBuilder(DescribedObject):
         raise NotImplementedError
 
     def _spatial_sorting(self, rois):
+        # sort rois on x position of the bounding box
         out = []
-        for i, sr in enumerate(sorted(rois, key=lambda  a,b: a.rectangle[0] - b.rectangle[0])):
+        for i, sr in enumerate(sorted(rois, key=lambda a: a.rectangle[0])):
             if sr.value is None:
                 sr.set_value(i)
             out.append(sr)
         return out
 
     def _value_sorting(self, rois):
+        # sort rois on their values
         out = []
-        for i, sr in enumerate(sorted(rois, key=lambda  a,b: a.value - b.value)):
+        for i, sr in enumerate(sorted(rois, key=lambda a: a.value)):
             out.append(sr)
         return out
 
