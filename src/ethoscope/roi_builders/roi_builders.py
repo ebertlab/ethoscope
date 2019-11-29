@@ -62,7 +62,7 @@ class BaseROIBuilder(DescribedObject):
 
     def _spatial_sorting(self, rois):
         out = []
-        for i, sr in enumerate(sorted(rois, lambda  a,b: a.rectangle[0] - b.rectangle[0])):
+        for i, sr in enumerate(sorted(rois, key=lambda  a,b: a.rectangle[0] - b.rectangle[0])):
             if sr.value is None:
                 sr.set_value(i)
             out.append(sr)
@@ -70,7 +70,7 @@ class BaseROIBuilder(DescribedObject):
 
     def _value_sorting(self, rois):
         out = []
-        for i, sr in enumerate(sorted(rois, lambda  a,b: a.value - b.value)):
+        for i, sr in enumerate(sorted(rois, key=lambda  a,b: a.value - b.value)):
             out.append(sr)
         return out
 
