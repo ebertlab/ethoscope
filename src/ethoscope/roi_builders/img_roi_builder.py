@@ -41,17 +41,19 @@ class ImgMaskROIBuilder(BaseROIBuilder):
         if len(self._mask.shape) == 3:
             self._mask = cv2.cvtColor(self._mask, cv2.COLOR_BGR2GRAY)
         # set threshold for findContours(): everthing not black (0) is over threshold
-        ret, thresh = cv2.threshold(self._mask, 1, 255, cv2.THRESH_BINARY)
+        ret, self._mask = cv2.threshold(self._mask, 1, 255, cv2.THRESH_BINARY)
         if CV_VERSION == 3:
             # OpenCV version 3 findContours() does not modify input image
-            _, contours, _ = cv2.findContours(thresh, RETR_EXTERNAL, CHAIN_APPROX_SIMPLE)
+            _, contours, _ = cv2.findContours(self._mask, RETR_EXTERNAL, CHAIN_APPROX_SIMPLE)
         else:
             contours, _ = cv2.findContours(np.copy(self._mask), RETR_EXTERNAL, CHAIN_APPROX_SIMPLE)
 
         rois = []
         for i,c in enumerate(contours):
             tmp_mask = np.zeros_like(self._mask)
-            cv2.drawContours(tmp_mask, [c],0, 1)
+            cv2.drawContours(tmp_mask, [c], -1, 255)
+            #cv2.imshow("Mask", tmp_mask)
+            #cv2.waitKey(0)
 
             value = int(np.median(self._mask[tmp_mask > 0]))
 
