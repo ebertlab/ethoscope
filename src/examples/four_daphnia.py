@@ -17,8 +17,10 @@
 """
 __author__ = 'lukas'
 
-import sys
-sys.path.insert(0, '../ethoscope')
+import sys, os
+package_path = os.path.join(os.path.dirname(sys.path[0]), '')
+print("path of ethoscope package: ", package_path)
+sys.path.insert(0, package_path)
 import cv2
 
 INPUT_DATA_DIR = "./test_data/"
