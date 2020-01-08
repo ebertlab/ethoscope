@@ -34,7 +34,8 @@ class BaseDrawer(object):
         self._video_out_fourcc = video_out_fourcc
         self._video_out_fps = video_out_fps
         if draw_frames:
-            cv2.namedWindow(self._window_name, cv2.WINDOW_AUTOSIZE)
+            cv2.namedWindow(self._window_name, cv2.WINDOW_NORMAL | cv2.WINDOW_KEEPRATIO)
+            cv2.resizeWindow(self._window_name, 1000, 1000)
         self._last_drawn_frame = None
 
     def _annotate_frame(self,img, positions, tracking_units):
@@ -74,6 +75,8 @@ class BaseDrawer(object):
         self._annotate_frame(self._last_drawn_frame, positions,tracking_units)
 
         if self._draw_frames:
+            cv2.namedWindow(self._window_name, cv2.WINDOW_NORMAL | cv2.WINDOW_KEEPRATIO)
+            cv2.resizeWindow(self._window_name, 1000, 1000)
             cv2.imshow(self._window_name, self._last_drawn_frame )
             cv2.waitKey(1)
 
