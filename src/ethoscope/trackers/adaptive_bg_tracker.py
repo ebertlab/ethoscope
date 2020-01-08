@@ -246,7 +246,7 @@ class AdaptiveBGModel(BaseTracker):
         :return:
         """
         self._previous_shape=None
-        self._object_expected_size = 0.05 # proportion of the roi main axis
+        self._object_expected_size = 0.035 # proportion of the roi main axis
         self._max_area = (5 * self._object_expected_size) ** 2
 
         self._smooth_mode = deque()
@@ -280,16 +280,30 @@ class AdaptiveBGModel(BaseTracker):
                 mask = np.ones_like(self._buff_grey) * 255
 
         cv2.cvtColor(img,cv2.COLOR_BGR2GRAY, self._buff_grey)
-        # cv2.imshow("dbg",self._buff_grey)
+        """
+        if logging.getLogger().isEnabledFor(logging.DEBUG):
+          cv2.namedWindow("PreProc", cv2.WINDOW_NORMAL)
+          cv2.resizeWindow("PreProc", 800, 600)
+          cv2.imshow("PreProc", self._buff_grey)
+          cv2.waitKey(0)
+        """
+
         cv2.GaussianBlur(self._buff_grey,(blur_rad,blur_rad),1.2, self._buff_grey)
         if darker_fg:
             cv2.subtract(255, self._buff_grey, self._buff_grey)
+
+        if logging.getLogger().isEnabledFor(logging.DEBUG):       
+          cv2.namedWindow("PreProc", cv2.WINDOW_NORMAL)
+          cv2.resizeWindow("PreProc", 800, 600)
+          cv2.imshow("PreProc", self._buff_grey)
+          cv2.waitKey(0)        
 
         #
         mean = cv2.mean(self._buff_grey, mask)
 
         scale = 128. / mean[0]
 
+        logging.debug("_pre_process_input_minimal: cv2.multiply(%s, %s)" % (self._buff_grey, scale))
         cv2.multiply(self._buff_grey, scale, dst = self._buff_grey)
 
 

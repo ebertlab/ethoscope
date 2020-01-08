@@ -13,6 +13,7 @@ except ImportError:
     from cv2 import IMREAD_GRAYSCALE as IMG_READ_FLAG_GREY
     from cv2 import RETR_EXTERNAL, CHAIN_APPROX_SIMPLE
 
+import logging
 import numpy as np
 from ethoscope.roi_builders.roi_builders import BaseROIBuilder
 from ethoscope.core.roi import ROI
@@ -41,22 +42,31 @@ class ImgMaskROIBuilder(BaseROIBuilder):
         if len(self._mask.shape) == 3:
             self._mask = cv2.cvtColor(self._mask, cv2.COLOR_BGR2GRAY)
         # set threshold for findContours(): everthing not black (0) is over threshold
-        ret, self._mask = cv2.threshold(self._mask, 1, 255, cv2.THRESH_BINARY)
+        ret, self._mask = cv2.threshold(self._mask, 10, 255, cv2.THRESH_BINARY)
         if CV_VERSION == 3:
             # OpenCV version 3 findContours() does not modify input image
             _, contours, _ = cv2.findContours(self._mask, RETR_EXTERNAL, CHAIN_APPROX_SIMPLE)
         else:
             contours, _ = cv2.findContours(np.copy(self._mask), RETR_EXTERNAL, CHAIN_APPROX_SIMPLE)
 
+        contour_cnt = len(contours)
+        logging.info("ImgMaskROIBuilder: found %s contours" % contour_cnt)
         rois = []
+        tmp_mask = np.zeros_like(self._mask)
         for i,c in enumerate(contours):
-            tmp_mask = np.zeros_like(self._mask)
-            cv2.drawContours(tmp_mask, [c], -1, 255)
-            #cv2.imshow("Mask", tmp_mask)
-            #cv2.waitKey(0)
+            #logging.debug("ROI Contour %s: %s", i, [c]);
+            if len(c) >= 3:
+              cv2.drawContours(tmp_mask, [c], -1, 255)
 
-            value = int(np.median(self._mask[tmp_mask > 0]))
+              value = int(np.median(self._mask[tmp_mask > 0]))
 
-            rois.append(ROI(c, i+1, value))
+              rois.append(ROI(c, i+1, value))
+
+        logging.info("ImgMaskROIBuilder: %s valid contours" % len(rois))
+        if logging.getLogger().isEnabledFor(logging.DEBUG):
+          cv2.namedWindow("ROIMask", cv2.WINDOW_NORMAL)
+          cv2.resizeWindow("ROIMask", 800, 600)
+          cv2.imshow("ROIMask", tmp_mask)
+          cv2.waitKey(0)
 
         return rois
