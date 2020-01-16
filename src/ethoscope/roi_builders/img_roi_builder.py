@@ -41,13 +41,20 @@ class ImgMaskROIBuilder(BaseROIBuilder):
         # transform to gray scale image if not already
         if len(self._mask.shape) == 3:
             self._mask = cv2.cvtColor(self._mask, cv2.COLOR_BGR2GRAY)
+
+        thresh_mask = self._mask.copy()
+        #cv2.namedWindow("ROIMask Copy", cv2.WINDOW_NORMAL)
+        #cv2.resizeWindow("ROIMask Copy", 800, 600)
+        #cv2.imshow("ROIMask Copy", thresh_mask)
+        #cv2.waitKey(0)
+
         # set threshold for findContours(): everthing not black (0) is over threshold
-        ret, self._mask = cv2.threshold(self._mask, 10, 255, cv2.THRESH_BINARY)
+        ret, thresh_mask = cv2.threshold(thresh_mask, 5, 255, cv2.THRESH_BINARY)
         if CV_VERSION == 3:
             # OpenCV version 3 findContours() does not modify input image
-            _, contours, _ = cv2.findContours(self._mask, RETR_EXTERNAL, CHAIN_APPROX_SIMPLE)
+            _, contours, _ = cv2.findContours(thresh_mask, RETR_EXTERNAL, CHAIN_APPROX_SIMPLE)
         else:
-            contours, _ = cv2.findContours(np.copy(self._mask), RETR_EXTERNAL, CHAIN_APPROX_SIMPLE)
+            contours, _ = cv2.findContours(thresh_mask, RETR_EXTERNAL, CHAIN_APPROX_SIMPLE)
 
         contour_cnt = len(contours)
         logging.info("ImgMaskROIBuilder: found %s contours" % contour_cnt)
@@ -56,11 +63,15 @@ class ImgMaskROIBuilder(BaseROIBuilder):
         for i,c in enumerate(contours):
             #logging.debug("ROI Contour %s: %s", i, [c]);
             if len(c) >= 3:
+              # skip contours with less than 3 elements
               cv2.drawContours(tmp_mask, [c], -1, 255)
 
               value = int(np.median(self._mask[tmp_mask > 0]))
+              print("ROI %s value: %s" % (i, value))
+              #if (value == 255):
+              #  value = None
 
-              rois.append(ROI(c, i+1, value))
+              rois.append(ROI(c, i + 1, value))
 
         logging.info("ImgMaskROIBuilder: %s valid contours" % len(rois))
         if logging.getLogger().isEnabledFor(logging.DEBUG):
