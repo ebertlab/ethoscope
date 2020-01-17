@@ -155,7 +155,7 @@ class BackgroundModel(object):
     """
     A class to model background. It uses a dynamic running average and support arbitrary and heterogeneous frame rates
     """
-    def __init__(self, max_half_life=100. * 1000, min_half_life=1.* 1000, increment = 1.2):
+    def __init__(self, max_half_life=100. * 1000, min_half_life=1. * 1000, increment=1.2):
         # the maximal half life of a pixel from background, in seconds
         self._max_half_life = float(max_half_life)
         # the minimal one
@@ -185,7 +185,6 @@ class BackgroundModel(object):
     def decrease_learning_rate(self):
         self._current_half_life  *=  self._increment
 
-
     def update(self, img_t, t, fg_mask=None):
         dt = float(t - self.last_t)
         if dt < 0:
@@ -207,7 +206,7 @@ class BackgroundModel(object):
         # the learning rate, alpha, is an exponential function of half life
         # it correspond to how much the present frame should account for the background
 
-        lam =  np.log(2)/self._current_half_life
+        lam =  np.log(2) / self._current_half_life
         # how much the current frame should be accounted for
         alpha = 1 - np.exp(-lam * dt)
 
@@ -216,7 +215,6 @@ class BackgroundModel(object):
         if fg_mask is not None:
             cv2.dilate(fg_mask,None,fg_mask)
             cv2.subtract(self._buff_alpha_matrix, self._buff_alpha_matrix, self._buff_alpha_matrix, mask=fg_mask)
-
 
         if self._buff_invert_alpha_mat is None:
             self._buff_invert_alpha_mat = 1 - self._buff_alpha_matrix
@@ -370,6 +368,12 @@ class AdaptiveBGModel(BaseTracker):
 
         grey = self._pre_process_input_minimal(img, mask, t)
         # grey = self._pre_process_input(img, mask, t)
+        if logging.getLogger().isEnabledFor(logging.DEBUG):
+          cv2.namedWindow("PreProc", cv2.WINDOW_NORMAL)
+          cv2.resizeWindow("PreProc", 800, 600)
+          cv2.imshow("PreProc", grey)
+          cv2.waitKey(0)
+
         try:
             return self._track(img, grey, mask, t)
         except NoPositionError:
@@ -389,9 +393,15 @@ class AdaptiveBGModel(BaseTracker):
             raise NoPositionError
 
         bg = self._bg_model.bg_img.astype(np.uint8)
+
         cv2.subtract(grey, bg, self._buff_fg)
 
         cv2.threshold(self._buff_fg,20,255,cv2.THRESH_TOZERO, dst=self._buff_fg)
+        if logging.getLogger().isEnabledFor(logging.DEBUG):
+          cv2.namedWindow("Background", cv2.WINDOW_NORMAL)
+          cv2.resizeWindow("Background", 800, 600)
+          cv2.imshow("Background", self._buff_fg)
+          cv2.waitKey(0)
 
         # cv2.bitwise_and(self._buff_fg_backup,self._buff_fg,dst=self._buff_fg_diff)
         # sum_fg = cv2.countNonZero(self._buff_fg)
