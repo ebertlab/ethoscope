@@ -22,8 +22,11 @@ INPUT_DATA_DIR = "/home/lukas/tmp/AAA-Video/"
 OUTPUT_DATA_DIR = "/home/lukas/tmp/ethoscope/"
 
 ROI_IMAGE = INPUT_DATA_DIR + "irbacklit_20200109_1525_4x4x6_squaremask_valued.png"
+INPUT_VIDEO = INPUT_DATA_DIR + "Basler_acA5472-17um__23065142__20200109_152536071.mp4"
 
 logfile = OUTPUT_DATA_DIR + 'roi_sort.log'
+OUTPUT_VIDEO = OUTPUT_DATA_DIR + "my_output.avi"
+OUTPUT_DB = OUTPUT_DATA_DIR + "results.db"
 
 dbgImgWinSizeX = 1600
 dbgImgWinSizeY = 1200
@@ -42,6 +45,11 @@ import cv2
 # Use a mask image to define rois. Mask image must have black background, every non-black
 # region defines a roi.
 from ethoscope.roi_builders.img_roi_builder import ImgMaskROIBuilder
+from ethoscope.core.monitor import Monitor
+from ethoscope.trackers.adaptive_bg_tracker import AdaptiveBGModel
+from ethoscope.utils.io import SQLiteResultWriter
+from ethoscope.hardware.input.cameras import MovieVirtualCamera
+from ethoscope.drawers.drawers import DefaultDrawer
 
 # Generate ROIs from the mask image
 logging.info("reading roi mask")
@@ -153,5 +161,19 @@ class RoiCenters():
 roiCenters = RoiCenters(rois)
 #roiCenters.printRoiCenters()
 roiCenters.gridSort(50, 50)
+
+# We use a video input file as if it were a camera
+cam = MovieVirtualCamera(INPUT_VIDEO)
+
+# we use a drawer to show inferred position for each animal, display frames and save them as a video
+drawer = DefaultDrawer(OUTPUT_VIDEO, draw_frames = True,
+                       framesWinSizeX = dbgImgWinSizeX, framesWinSizeY = dbgImgWinSizeY)
+# We build our monitor
+monitor = Monitor(cam, AdaptiveBGModel, rois)
+
+# Now everything is ready, we run the monitor with a result writer and a drawer
+logging.info("run monitor with drawer")
+with SQLiteResultWriter(OUTPUT_DB, rois) as rw:
+     monitor.run(rw, drawer)
 
 
