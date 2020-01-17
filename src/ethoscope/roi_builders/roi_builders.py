@@ -22,22 +22,28 @@ class BaseROIBuilder(DescribedObject):
         Uses an input (image or camera) to build ROIs.
         When a camera is used, several frames are acquired and averaged to build a reference image.
 
-        :param input: Either a camera object, or an image.
+        :param input: Either a camera object, or an image. If self has a _mask attribute, use that as
+                      input instead and ignore the input parameter.
         :type input: :class:`~ethoscope.hardware.input.camera.BaseCamera` or :class:`~numpy.ndarray`
+                     or anything else for the case the child class defines a _mask attribute.
         :return: list(:class:`~ethoscope.core.roi.ROI`)
         """
 
         accum = []
-        if isinstance(input, np.ndarray):
+        if hasattr(self, '_mask'):
+            # e.g. ImgMaskROIBuilder already has loaded an image, use that one
+            accum = self._mask
+        elif isinstance(input, np.ndarray):
+            # image is handed over as input parameter
             accum = np.copy(input)
-
         else:
+            # camera object is handed over as input, use median of the first five frames
             for i, (_, frame) in enumerate(input):
                 accum.append(frame)
                 if i  >= 5:
                     break
-
             accum = np.median(np.array(accum),0).astype(np.uint8)
+
         try:
             rois = self._rois_from_img(accum)
         except Exception as e:
@@ -56,16 +62,16 @@ class BaseROIBuilder(DescribedObject):
         return rois
 
 
-
-    def _rois_from_img(self,img):
+    def _rois_from_img(self, img):
         raise NotImplementedError
 
     def _spatial_sorting(self, rois):
         # sort rois on x position of the bounding box
         out = []
+        # L. Zi: this sorts in x-direction only and does not try to detect whether
+        # the ROIS are arranged according to a grid
         for i, sr in enumerate(sorted(rois, key=lambda a: a.rectangle[0])):
-            if sr.value is None:
-                sr.set_value(i)
+            sr.set_value(i)
             out.append(sr)
         return out
 
