@@ -12,7 +12,8 @@ from ethoscope.utils.description import DescribedObject
 import os
 
 class BaseDrawer(object):
-    def __init__(self, video_out=None, draw_frames=True, video_out_fourcc="DIVX", video_out_fps=2):
+    def __init__(self, video_out=None, draw_frames=True, framesWinSizeX=800, framesWinSizeY=600,
+                 video_out_fourcc="DIVX", video_out_fps=2):
         """
         A template class to annotate and save the processed frames. It can also save the annotated frames in a video
         file and/or display them in a new window. The :meth:`~ethoscope.drawers.drawers.BaseDrawer._annotate_frame`
@@ -28,14 +29,16 @@ class BaseDrawer(object):
         :type video_out_fps: float
         """
         self._video_out = video_out
-        self._draw_frames= draw_frames
+        self._draw_frames = draw_frames
+        self._framesWinSizeX = framesWinSizeX
+        self._framesWinSizeY = framesWinSizeY
         self._video_writer = None
         self._window_name = "ethoscope_" + str(os.getpid())
         self._video_out_fourcc = video_out_fourcc
         self._video_out_fps = video_out_fps
         if draw_frames:
             cv2.namedWindow(self._window_name, cv2.WINDOW_NORMAL | cv2.WINDOW_KEEPRATIO)
-            cv2.resizeWindow(self._window_name, 1000, 1000)
+            cv2.resizeWindow(self._window_name, framesWinSizeX, framesWinSizeY)
         self._last_drawn_frame = None
 
     def _annotate_frame(self,img, positions, tracking_units):
@@ -76,7 +79,7 @@ class BaseDrawer(object):
 
         if self._draw_frames:
             cv2.namedWindow(self._window_name, cv2.WINDOW_NORMAL | cv2.WINDOW_KEEPRATIO)
-            cv2.resizeWindow(self._window_name, 1000, 1000)
+            cv2.resizeWindow(self._window_name, self._framesWinSizeX, self._framesWinSizeY)
             cv2.imshow(self._window_name, self._last_drawn_frame )
             cv2.waitKey(1)
 
@@ -111,7 +114,7 @@ class NullDrawer(BaseDrawer):
 
 
 class DefaultDrawer(BaseDrawer):
-    def __init__(self, video_out= None, draw_frames=False):
+    def __init__(self, video_out=None, draw_frames=False, framesWinSizeX=800, framesWinSizeY=600):
         """
         The default drawer. It draws ellipses on the detected objects and polygons around ROIs. When an "interaction"
         see :class:`~ethoscope.stimulators.stimulators.BaseInteractor` happens within a ROI,
@@ -122,18 +125,23 @@ class DefaultDrawer(BaseDrawer):
         :param draw_frames: Whether frames should be displayed on the screen (a new window will be created).
         :type draw_frames: bool
         """
-        super(DefaultDrawer,self).__init__(video_out=video_out, draw_frames=draw_frames)
+        super(DefaultDrawer,self).__init__(video_out=video_out, draw_frames=draw_frames,
+                                           framesWinSizeX=framesWinSizeX, framesWinSizeY=framesWinSizeY)
 
-    def _annotate_frame(self,img, positions, tracking_units):
+    def _annotate_frame(self, img, positions, tracking_units):
         if img is None:
             return
         for track_u in tracking_units:
 
-            x,y = track_u.roi.offset
+            x, y = track_u.roi.offset
             y += track_u.roi.rectangle[3]
 
-            #cv2.putText(img, str(track_u.roi.idx), (round(x) + 5,round(y) - 20), cv2.FONT_HERSHEY_COMPLEX_SMALL, 1, (255,255,0))
-            cv2.putText(img, str(track_u.roi.idx), (round(x) + 5, round(y) - 5), cv2.FONT_HERSHEY_DUPLEX, 1, (255,255,0))
+            #cv2.putText(img, str(track_u.roi.idx), (round(x) + 5,round(y) - 20),
+            #             cv2.FONT_HERSHEY_COMPLEX_SMALL, 1, (255,255,0))
+            #cv2.putText(img, str(track_u.roi.idx), (round(x) + 5, round(y) - 5),
+            #            cv2.FONT_HERSHEY_DUPLEX, 1, (255,255,0))
+            cv2.putText(img, str(track_u.roi._value), (round(x) + 5, round(y) - 5),
+                        cv2.FONT_HERSHEY_DUPLEX, 1, (255,255,0))
             black_colour = (0, 0, 0)
             roi_colour = (0, 255, 0)
             cv2.drawContours(img,[track_u.roi.polygon],-1, black_colour, 3, LINE_AA)
