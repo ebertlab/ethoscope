@@ -33,6 +33,11 @@ dbgImgWinSizeY = 1500
 
 # setup logging
 logging.basicConfig(filename=logfile, level=logging.INFO)
+# define a Handler which writes INFO messages or higher to the sys.stderr
+console = logging.StreamHandler()
+console.setLevel(logging.INFO)
+# add the handler to the root logger
+logging.getLogger('').addHandler(console)
 
 # Make the ethoscope packages accessible
 package_path = os.path.join(os.path.dirname(sys.path[0]), '')
@@ -59,8 +64,8 @@ logging.info("building rois")
 roi_builder.build(None)  # use image already loaded by ImgMaskROIBuilder instance
 rois = roi_builder.gridSort(50, 50)
 
-for r in rois:
-  print("Roi %d: value: %d, (%d,%d)" % (r.idx, r._value, r._rectangle[0], r._rectangle[1]))
+#for r in rois:
+#  print("Roi %d: value: %d, (%d,%d)" % (r.idx, r._value, r._rectangle[0], r._rectangle[1]))
 
 # We use a video input file as if it were a camera
 cam = MovieVirtualCamera(INPUT_VIDEO)
