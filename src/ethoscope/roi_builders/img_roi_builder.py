@@ -103,42 +103,42 @@ class ImgMaskROIBuilder(BaseROIBuilder):
     """
     self._xTolerance = xTolerance
     self._yTolerance = yTolerance
-    _binnedRois = []
+    binnedRois = []
     for r in self._rois:
-      _binnedRois.append(RoiWithGridBin(r))
+      binnedRois.append(RoiWithGridBin(r))
 
-    _xSorted = sorted(_binnedRois, key=lambda a: a._roi._rectangle[0])
-    _ySorted = sorted(_binnedRois, key=lambda a: a._roi._rectangle[1])
+    xSorted = sorted(binnedRois, key=lambda a: a._roi._rectangle[0])
+    ySorted = sorted(binnedRois, key=lambda a: a._roi._rectangle[1])
     self._xCategoryCnt = 0
     self._yCategoryCnt = 0
 
-    _xCategory = -1
-    _prevX = 0
-    for r in _xSorted:
-      _xDistance = r._roi._rectangle[0] - _prevX
-      if (_xDistance > xTolerance):
-        _xCategory += 1
-      r._xCategory = _xCategory
-      _prevX = r._roi._rectangle[0]
-    self._xCategoryCnt = _xCategory + 1
+    xCategory = -1
+    prevX = 0
+    for r in xSorted:
+      xDistance = r._roi._rectangle[0] - prevX
+      if (xDistance > xTolerance):
+        xCategory += 1
+      r._xCategory = xCategory
+      prevX = r._roi._rectangle[0]
+    self._xCategoryCnt = xCategory + 1
 
-    _yCategory = -1
-    _prevY = 0
-    for r in _ySorted:
-      _yDistance = r._roi._rectangle[1] - _prevY
-      if (_yDistance > yTolerance):
-        _yCategory += 1
-      r._yCategory = _yCategory
-      _prevY = r._roi._rectangle[1]
-    self._yCategoryCnt = _yCategory + 1
+    yCategory = -1
+    prevY = 0
+    for r in ySorted:
+      yDistance = r._roi._rectangle[1] - prevY
+      if (yDistance > yTolerance):
+        yCategory += 1
+      r._yCategory = yCategory
+      prevY = r._roi._rectangle[1]
+    self._yCategoryCnt = yCategory + 1
 
-    for rs in _binnedRois:
+    for rs in binnedRois:
       rs._roi._value = rs._yCategory * self._xCategoryCnt + rs._xCategory
 #      print("Roi %d: (%d,%d), category: (%d,%d)" % (rs._roi.idx, rs._cX, rs._cY, rs._xCategory, rs._yCategory))
 
-    _sortedRois = sorted(_binnedRois, key=lambda a: a._roi._value)
+    sortedRois = sorted(binnedRois, key=lambda a: a._roi._value)
     self._rois = []
-    for sr in _sortedRois:
+    for sr in sortedRois:
       self._rois.append(sr._roi)
 
     return self._rois
