@@ -1,5 +1,9 @@
 __author__ = 'quentin'
 
+from ethoscope.core.variables import \
+  XPosVariable, YPosVariable, XYDistance, WidthVariable, HeightVariable, PhiVariable, Label, IsInferredVariable
+from ethoscope.stimulators.stimulators import HasInteractedVariable
+from ethoscope.core.data_point import DataPoint
 from .tracking_unit import TrackingUnit
 import logging
 import traceback
@@ -100,6 +104,7 @@ class Monitor(object):
 
             for i,(t, frame) in enumerate(self._camera):
 
+                #logging.info("Monitor: frame: %d, time: %d" % (i, t))
                 if self._force_stop:
                     logging.info("Monitor object stopped from external request")
                     break
@@ -107,12 +112,24 @@ class Monitor(object):
                 self._last_frame_idx = i
                 self._last_time_stamp = t
                 self._frame_buffer = frame
-
+                #logStr = "Monitor: frame: %d, time: %d" % (i, t)
+                empty_cnt = 0
                 for j,track_u in enumerate(self._unit_trackers):
                     data_rows = track_u.track(t, frame)
                     if len(data_rows) == 0:
                         self._last_positions[track_u.roi.idx] = []
-                        continue
+                        empty_cnt += 1
+                        # L. Zi do not skip trackers not returning a detection
+                        # but fill in a data row with zero values
+                        #continue
+                        data_rows = [DataPoint([XPosVariable(0),
+                                                YPosVariable(0),
+                                                WidthVariable(0),
+                                                HeightVariable(0),
+                                                PhiVariable(0),
+                                                XYDistance(0),
+                                                IsInferredVariable(0),
+                                                HasInteractedVariable(0)]) ]
 
                     abs_pos = track_u.get_last_positions(absolute=True)
 
@@ -120,8 +137,10 @@ class Monitor(object):
                     self._last_positions[track_u.roi.idx] = abs_pos
 
                     if not result_writer is None:
-                        result_writer.write(t,track_u.roi, data_rows)
+                        #logging.info(logStr + ", Roi: %d, %s" % (track_u.roi.idx, data_rows))
+                        result_writer.write(t, track_u.roi, data_rows)
 
+                #logging.info(logStr + " empty data cnt: %d" % (empty_cnt))
                 if result_writer is not None:
                     result_writer.flush(t, frame)
 
