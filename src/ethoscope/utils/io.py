@@ -448,7 +448,9 @@ class ResultWriter(object):
 
     def _initialise(self, roi, data_row):
         # We make a new dir to store results
-        fields = ["id INT  NOT NULL AUTO_INCREMENT PRIMARY KEY" ,"t INT"]
+        #fields = ["id INT  NOT NULL AUTO_INCREMENT PRIMARY KEY" ,"t INT"]
+        # L. Zi.: for the specifics of SQLite, use this arrangement
+        fields = ["id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL" ,"t INT"]
         for dt in data_row.values():
             fields.append("%s %s" % (dt.header_name, dt.sql_data_type))
         fields = ", ".join(fields)
