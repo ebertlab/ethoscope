@@ -100,7 +100,7 @@ class ROI(object):
 
     def get_feature_dict(self):
         """
-        :return: A dictionary of freatures for this roi. It containes the folowing fields:
+        :return: A dictionary of features for this roi. It containes the folowing fields:
 
         * "x"
         * "y"
@@ -159,3 +159,4 @@ class ROI(object):
             raise EthoscopeException("Error whilst slicing region of interest. Possibly, the region out of the image: %s" % str(self.get_feature_dict()), img )
 
         return out, self._mask
+

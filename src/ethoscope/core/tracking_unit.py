@@ -22,7 +22,7 @@ class TrackingUnit(object):
         :param kwargs: additional keyword arguments passed to the tracking algorithm.
         """
 
-        self._tracker = tracking_class(roi,*args, **kwargs)
+        self._tracker = tracking_class(roi, *args, **kwargs)
         self._roi = roi
 
         if stimulator is not None:
