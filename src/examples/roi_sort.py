@@ -33,6 +33,7 @@ dbgImgWinSizeY = 1500
 
 # setup logging
 logging.basicConfig(filename=logfile, level=logging.INFO)
+#logging.basicConfig(filename=logfile, level=logging.DEBUG)
 # define a Handler which writes INFO messages or higher to the sys.stderr
 console = logging.StreamHandler()
 console.setLevel(logging.INFO)
@@ -73,8 +74,12 @@ cam = MovieVirtualCamera(INPUT_VIDEO)
 # we use a drawer to show inferred position for each animal, display frames and save them as a video
 drawer = DefaultDrawer(OUTPUT_VIDEO, draw_frames = True,
                        framesWinSizeX = dbgImgWinSizeX, framesWinSizeY = dbgImgWinSizeY)
+
 # We build our monitor
-monitor = Monitor(cam, AdaptiveBGModel, rois)
+#monitor = Monitor(cam, AdaptiveBGModel, rois)
+monitor = Monitor(cam, AdaptiveBGModel, rois,
+                  dbg_roi_value=87,
+                  dbg_roi_video_filename=("%s/roi_87_dbg.avi" % OUTPUT_DATA_DIR))
 
 # Now everything is ready, we run the monitor with a result writer and a drawer
 logging.info("run monitor with drawer")

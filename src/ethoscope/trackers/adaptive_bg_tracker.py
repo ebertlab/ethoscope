@@ -172,7 +172,7 @@ class BackgroundModel(object):
 
         self._buff_alpha_matrix = None
         self._buff_invert_alpha_mat = None
-        # the time stamp of the frame las used to update
+        # the time stamp of the frame last used to update
         self.last_t = 0
 
     @property
@@ -234,7 +234,9 @@ class AdaptiveBGModel(BaseTracker):
 
     fg_model = ObjectModel()
 
-    def __init__(self, roi, data=None):
+    # L.Zi.: propagate *args, **kwargs, don't know what 'data' is for.
+    #def __init__(self, roi, data=None):
+    def __init__(self, roi, *args, **kwargs):
         """
         An adaptive background subtraction model to find position of one animal in one roi.
 
@@ -243,6 +245,7 @@ class AdaptiveBGModel(BaseTracker):
         :param data:
         :return:
         """
+        data = None
         self._previous_shape=None
         self._object_expected_size = 0.035 # proportion of the roi main axis
         self._max_area = (5 * self._object_expected_size) ** 2
@@ -264,7 +267,36 @@ class AdaptiveBGModel(BaseTracker):
         self._buff_fg_diff = None
         self._old_sum_fg = 0
 
+        # L. Zi.: video writer to produce optional single roi processing debug video
+        self._dbg_roi_video_writer = None
+        self._dbg_single_roi_value = -1
+        self._dbg_single_roi_do_rec = False
+        self._dbg_single_roi_video_filename = None
+        if ("dbg_roi_value" in kwargs
+            and "dbg_roi_video_filename" in kwargs
+            and len(kwargs["dbg_roi_video_filename"]) > 0):
+          for a in kwargs:
+             if a == "dbg_roi_value":
+               self._dbg_single_roi_value = kwargs["dbg_roi_value"]
+               self._dbg_single_roi_do_rec = True
+             if a == "dbg_roi_video_filename":
+               self._dbg_single_roi_video_filename = kwargs["dbg_roi_video_filename"]
+
         super(AdaptiveBGModel, self).__init__(roi, data)
+
+    def __del__(self):
+        # L. Zi.: for closing video output file when doing single roi processing debug video
+        #if self._dbg_roi_video_writer is not None:
+        #    self._dbg_roi_video_writer.release()
+        pass
+
+    def enable_single_roi_debugging(self, roi_value, video_filename):
+        self._dbg_single_roi_value = roi_value
+        self._dbg_single_roi_video_filename = video_filename
+        self._dbg_single_roi_do_rec = True
+        
+    def disable_single_roi_debugging(self, roi_value, video_filename):
+        self._dbg_single_roi_do_rec = False
 
     def _pre_process_input_minimal(self, img, mask, t, darker_fg=True):
         blur_rad = int(self._object_expected_size * np.max(img.shape) / 2.0)
@@ -273,30 +305,16 @@ class AdaptiveBGModel(BaseTracker):
             blur_rad += 1
 
         if self._buff_grey is None:
-            self._buff_grey = cv2.cvtColor(img,cv2.COLOR_BGR2GRAY)
+            self._buff_grey = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
             if mask is None:
                 mask = np.ones_like(self._buff_grey) * 255
 
-        cv2.cvtColor(img,cv2.COLOR_BGR2GRAY, self._buff_grey)
-        """
-        if logging.getLogger().isEnabledFor(logging.DEBUG):
-          cv2.namedWindow("PreProc", cv2.WINDOW_NORMAL)
-          cv2.resizeWindow("PreProc", 800, 600)
-          cv2.imshow("PreProc", self._buff_grey)
-          cv2.waitKey(0)
-        """
-
+        cv2.cvtColor(img, cv2.COLOR_BGR2GRAY, self._buff_grey)
+        
         cv2.GaussianBlur(self._buff_grey,(blur_rad,blur_rad),1.2, self._buff_grey)
         if darker_fg:
             cv2.subtract(255, self._buff_grey, self._buff_grey)
 
-        if logging.getLogger().isEnabledFor(logging.DEBUG):       
-          cv2.namedWindow("PreProc", cv2.WINDOW_NORMAL)
-          cv2.resizeWindow("PreProc", 800, 600)
-          cv2.imshow("PreProc", self._buff_grey)
-          cv2.waitKey(0)        
-
-        #
         mean = cv2.mean(self._buff_grey, mask)
 
         scale = 128. / mean[0]
@@ -364,11 +382,11 @@ class AdaptiveBGModel(BaseTracker):
             return self._buff_grey
 
 
-    def _find_position(self, img, mask,t):
+    def _find_position(self, img, mask, t):
 
         grey = self._pre_process_input_minimal(img, mask, t)
         # grey = self._pre_process_input(img, mask, t)
-        if logging.getLogger().isEnabledFor(logging.DEBUG):
+        if logging.getLogger().isEnabledFor(logging.DEBUG) and self._roi._value == 67:
           cv2.namedWindow("PreProc", cv2.WINDOW_NORMAL)
           cv2.resizeWindow("PreProc", 800, 600)
           cv2.imshow("PreProc", grey)
@@ -381,7 +399,7 @@ class AdaptiveBGModel(BaseTracker):
             raise NoPositionError
 
 
-    def _track(self, img,  grey, mask,t):
+    def _track(self, img, grey, mask, t):
 
         if self._bg_model.bg_img is None:
             self._buff_fg = np.empty_like(grey)
@@ -396,12 +414,10 @@ class AdaptiveBGModel(BaseTracker):
 
         cv2.subtract(grey, bg, self._buff_fg)
 
-        cv2.threshold(self._buff_fg,20,255,cv2.THRESH_TOZERO, dst=self._buff_fg)
-        if logging.getLogger().isEnabledFor(logging.DEBUG):
-          cv2.namedWindow("Background", cv2.WINDOW_NORMAL)
-          cv2.resizeWindow("Background", 800, 600)
-          cv2.imshow("Background", self._buff_fg)
-          cv2.waitKey(0)
+        cv2.threshold(self._buff_fg, 20, 255, cv2.THRESH_TOZERO, dst=self._buff_fg)
+
+        # L.Zi. make a copy of extracted foreground to illustrate detection for debugging
+        fg_cpy = np.copy(self._buff_fg)
 
         # cv2.bitwise_and(self._buff_fg_backup,self._buff_fg,dst=self._buff_fg_diff)
         # sum_fg = cv2.countNonZero(self._buff_fg)
@@ -421,12 +437,9 @@ class AdaptiveBGModel(BaseTracker):
             raise NoPositionError
 
         if CV_VERSION == 3:
-            _, contours,hierarchy = cv2.findContours(self._buff_fg, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+            _, contours, hierarchy = cv2.findContours(self._buff_fg, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         else:
-            contours,hierarchy = cv2.findContours(self._buff_fg, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-
-
-
+            contours, hierarchy = cv2.findContours(self._buff_fg, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
         contours = [cv2.approxPolyDP(c,1.2,True) for c in contours]
 
@@ -468,30 +481,32 @@ class AdaptiveBGModel(BaseTracker):
             raise NoPositionError
 
 
-        (x,y) ,(w,h), angle  = cv2.minAreaRect(hull)
+        (x, y), (w, h), angle  = cv2.minAreaRect(hull)
 
         if w < h:
             angle -= 90
-            w,h = h,w
+            w, h = h, w
         angle = angle % 180
 
         h_im = min(grey.shape)
         w_im = max(grey.shape)
-        max_h = 2*h_im
-        if w>max_h or h>max_h:
+        max_h = 2 * h_im
+        if w > max_h or h > max_h:
             raise NoPositionError
 
-        cv2.ellipse(self._buff_fg ,((x,y), (int(w*1.5),int(h*1.5)),angle),255,-1)
-
         #todo center mass just on the ellipse area
-        cv2.bitwise_and(self._buff_fg_backup, self._buff_fg,self._buff_fg_backup)
+        cv2.bitwise_and(self._buff_fg_backup, self._buff_fg, self._buff_fg_backup)
 
         y,x = ndimage.measurements.center_of_mass(self._buff_fg_backup)
 
-        pos = x +1.0j*y
-        pos /= w_im
+        pos = x + 1.0j * y
 
-        xy_dist = round(log10(1./float(w_im) + abs(pos - self._old_pos))*1000)
+        # L. Zi.: 
+        #pos /= w_im
+
+        #xy_dist = round(log10(1./float(w_im) + abs(pos - self._old_pos))*1000)
+        # L. Zi.: want linear motion distance
+        xy_dist = round(abs(pos - self._old_pos))
 
         # cv2.bitwise_and(self._buff_fg_diff,self._buff_fg,dst=self._buff_fg_diff)
         # sum_diff = cv2.countNonZero(self._buff_fg_diff)
@@ -502,7 +517,7 @@ class AdaptiveBGModel(BaseTracker):
 
 
         if mask is not None:
-            cv2.bitwise_and(self._buff_fg, mask,  self._buff_fg)
+            cv2.bitwise_and(self._buff_fg, mask, self._buff_fg)
 
         if is_ambiguous:
             self._bg_model.increase_learning_rate()
@@ -521,6 +536,41 @@ class AdaptiveBGModel(BaseTracker):
         h_var = HeightVariable(int(round(h)))
         phi_var = PhiVariable(int(round(angle)))
         # mlogl =   mLogLik(int(distance*1000))
+
+        # L. Zi.: produce and show adaptive background processing results
+        if self._dbg_single_roi_do_rec:
+          if self._roi._value == self._dbg_single_roi_value:
+            animal_colour = (255, 255, 255)
+            cv2.ellipse(fg_cpy, ((x, y), (int(w * 1.5), int(h * 1.5)), angle), animal_colour, 1, cv2.LINE_AA)
+            grey_img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+            h = round(self._roi.rectangle[3])
+            w = round(self._roi.rectangle[2])
+            # draw roi value
+            cv2.putText(fg_cpy, str(self._roi._value), (5, h - 10),
+                            cv2.FONT_HERSHEY_DUPLEX, 1, (255,255,255))
+            # draw motion distance of detected animal since last frame
+            cv2.putText(fg_cpy, str(int(xy_dist)), (5, 25),      
+                            cv2.FONT_HERSHEY_DUPLEX, 1, (255, 255, 255))
+            txt = str(int(t))
+            (txt_w, txt_h), _ = cv2.getTextSize(txt, cv2.FONT_HERSHEY_DUPLEX, 1, 1)
+            cv2.putText(fg_cpy, txt, (w - txt_w - 5, 25),
+                            cv2.FONT_HERSHEY_DUPLEX, 1, (255, 255, 255))
+            vis = np.concatenate((grey_img, bg, fg_cpy), axis=1)
+            #vis = np.concatenate((grey_img, grey, fg_cpy), axis=1)
+            cv2.namedWindow("Processing", cv2.WINDOW_NORMAL)
+            cv2.resizeWindow("Processing", 1800, 600)
+            cv2.imshow("Processing", vis)
+            cv2.waitKey(100)
+            # record a video
+            if self._dbg_roi_video_writer is None:
+                fourcc_string = 'DIVX'
+                fourcc = cv2.VideoWriter_fourcc(*fourcc_string)
+                self._dbg_roi_video_writer = cv2.VideoWriter(self._dbg_single_roi_video_filename,
+                                                             fourcc,
+                                                             2.0, (vis.shape[1], vis.shape[0]),
+                                                             isColor=False)
+            self._dbg_roi_video_writer.write(vis)
+
 
         out = DataPoint([x_var, y_var, w_var, h_var,
                          phi_var,

@@ -14,7 +14,10 @@ class NoPositionError(Exception):
 
 class BaseTracker(DescribedObject):
     # data_point = None
-    def __init__(self, roi,data=None):
+
+    # L.Zi.: propagate *args, **kwargs, don't know what 'data' is for.
+    #def __init__(self, roi, data=None):
+    def __init__(self, roi,  *args, **kwargs):
         """
         Template class for video trackers.
         A video tracker locate animal in a ROI.
@@ -26,8 +29,9 @@ class BaseTracker(DescribedObject):
 
         :return:
         """
+        data = None
         self._positions = deque()
-        self._times =deque()
+        self._times = deque()
         self._data = data
         self._roi = roi
         self._last_non_inferred_time = 0
@@ -54,7 +58,7 @@ class BaseTracker(DescribedObject):
         self._last_time_point = t
         try:
 
-            points = self._find_position(sub_img,mask,t)
+            points = self._find_position(sub_img, mask, t)
             if not isinstance(points, list):
                 raise Exception("tracking algorithms are expected to return a LIST of DataPoints")
 
