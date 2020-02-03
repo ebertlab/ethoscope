@@ -386,11 +386,11 @@ class AdaptiveBGModel(BaseTracker):
 
         grey = self._pre_process_input_minimal(img, mask, t)
         # grey = self._pre_process_input(img, mask, t)
-        if logging.getLogger().isEnabledFor(logging.DEBUG) and self._roi._value == 67:
-          cv2.namedWindow("PreProc", cv2.WINDOW_NORMAL)
-          cv2.resizeWindow("PreProc", 800, 600)
-          cv2.imshow("PreProc", grey)
-          cv2.waitKey(0)
+        #if logging.getLogger().isEnabledFor(logging.DEBUG) and self._roi._value == 67:
+        #  cv2.namedWindow("PreProc", cv2.WINDOW_NORMAL)
+        #  cv2.resizeWindow("PreProc", 800, 600)
+        #  cv2.imshow("PreProc", grey)
+        #  cv2.waitKey(0)
 
         try:
             return self._track(img, grey, mask, t)
