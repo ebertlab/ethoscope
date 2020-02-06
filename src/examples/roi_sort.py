@@ -21,12 +21,17 @@ import numpy as np
 INPUT_DATA_DIR = "/home/lukas/tmp/AAA-Video/"
 OUTPUT_DATA_DIR = "/home/lukas/tmp/ethoscope/"
 
-ROI_IMAGE = INPUT_DATA_DIR + "irbacklit_20200109_1525_4x4x6_squaremask_valued.png"
-INPUT_VIDEO = INPUT_DATA_DIR + "Basler_acA5472-17um__23065142__20200109_152536071.mp4"
+#ROI_IMAGE = INPUT_DATA_DIR + "irbacklit_20200109_1525_4x4x6_squaremask_valued.png"
+ROI_IMAGE = INPUT_DATA_DIR + "4xWellplates4x6_registred_squaremask_tight.png"
+#INPUT_VIDEO = INPUT_DATA_DIR + "Basler_acA5472-17um__23065142__20200109_152536071.mp4"
+INPUT_VIDEO = INPUT_DATA_DIR + "Basler_acA5472-17um__23065142__20200205_172106124.mp4"
 
-logfile = OUTPUT_DATA_DIR + 'roi_sort.log'
-OUTPUT_VIDEO = OUTPUT_DATA_DIR + "my_output.avi"
-OUTPUT_DB = OUTPUT_DATA_DIR + "results.db"
+logfile = OUTPUT_DATA_DIR + '20200205.log'
+OUTPUT_VIDEO = OUTPUT_DATA_DIR + "20200205.avi"
+OUTPUT_DB = OUTPUT_DATA_DIR + "results20200205.db"
+#logfile = OUTPUT_DATA_DIR + 'results.log'
+#OUTPUT_VIDEO = OUTPUT_DATA_DIR + "output.avi"
+#OUTPUT_DB = OUTPUT_DATA_DIR + "output.db"
 
 dbgImgWinSizeX = 2200
 dbgImgWinSizeY = 1500
@@ -70,16 +75,18 @@ rois = roi_builder.gridSort(50, 50)
 
 # We use a video input file as if it were a camera
 cam = MovieVirtualCamera(INPUT_VIDEO)
+logging.info("Loading \"%s\"-encoded movie with %d FPS of duration %d s."
+             % (cam.fourcc, cam.frames_per_sec, cam._total_n_frames/ cam.frames_per_sec))
 
 # we use a drawer to show inferred position for each animal, display frames and save them as a video
 drawer = DefaultDrawer(OUTPUT_VIDEO, draw_frames = True,
                        framesWinSizeX = dbgImgWinSizeX, framesWinSizeY = dbgImgWinSizeY)
 
 # We build our monitor
-#monitor = Monitor(cam, AdaptiveBGModel, rois)
-monitor = Monitor(cam, AdaptiveBGModel, rois,
-                  dbg_roi_value=87,
-                  dbg_roi_video_filename=("%s/roi_87_dbg.avi" % OUTPUT_DATA_DIR))
+monitor = Monitor(cam, AdaptiveBGModel, rois)
+#monitor = Monitor(cam, AdaptiveBGModel, rois,
+#                  dbg_roi_value=14,
+#                  dbg_roi_video_filename=("%s/roi_14_dbg.avi" % OUTPUT_DATA_DIR))
 
 # Now everything is ready, we run the monitor with a result writer and a drawer
 logging.info("run monitor with drawer")

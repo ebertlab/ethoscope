@@ -7,9 +7,12 @@ try:
     from cv2.cv import CV_CAP_PROP_FRAME_COUNT as CAP_PROP_FRAME_COUNT
     from cv2.cv import CV_CAP_PROP_POS_MSEC as CAP_PROP_POS_MSEC
     from cv2.cv import CV_CAP_PROP_FPS as CAP_PROP_FPS
-
+    from cv2.cv import CV_CAP_PROP_FOURCC as CAP_PROP_FOURCC
+    from cv2.cv import CV_CAP_PROP_POS_AVI_RATIO as CAP_PROP_POS_AVI_RATIO
 except ImportError:
-    from cv2 import CAP_PROP_FRAME_WIDTH, CAP_PROP_FRAME_HEIGHT, CAP_PROP_FRAME_COUNT, CAP_PROP_POS_MSEC, CAP_PROP_FPS
+    from cv2 import CAP_PROP_FRAME_WIDTH, CAP_PROP_FRAME_HEIGHT, \
+                    CAP_PROP_FRAME_COUNT, CAP_PROP_POS_MSEC, CAP_PROP_FPS, \
+                    CAP_PROP_FOURCC, CAP_PROP_POS_AVI_RATIO
 
 import time
 import logging
@@ -121,9 +124,10 @@ class BaseCamera(object):
 class MovieVirtualCamera(BaseCamera):
     _description = {"overview":  "Class to acquire frames from a video file.",
                     "arguments": [
-                                    {"type": "filepath", "name": "path", "description": "The path to the video file to use as virtual camera","default":"/home/gg/Desktop/demo_monitor_x5.avi.mp4"},
-                                   ]}
-                                   
+                                    {"type": "filepath", "name": "path",
+                                     "description": "The path to the video file to use as virtual camera",
+                                     "default": "/home/gg/Desktop/demo_monitor_x5.avi.mp4"},
+                                 ]}
 
     def __init__(self, path, use_wall_clock = False, *args, **kwargs ):
         """
@@ -153,13 +157,15 @@ class MovieVirtualCamera(BaseCamera):
         self.capture = cv2.VideoCapture(path) 
         w = self.capture.get(CAP_PROP_FRAME_WIDTH)
         h = self.capture.get(CAP_PROP_FRAME_HEIGHT)
-        self._total_n_frames =self.capture.get(CAP_PROP_FRAME_COUNT)
+        self._total_n_frames = self.capture.get(CAP_PROP_FRAME_COUNT)
+        self._fps = self.capture.get(CAP_PROP_FPS)
+        self._fourcc = self.capture.get(CAP_PROP_FOURCC)
         if self._total_n_frames == 0.:
             self._has_end_of_file = False
         else:
             self._has_end_of_file = True
 
-        self._resolution = (int(w),int(h))
+        self._resolution = (int(w), int(h))
 
         super(MovieVirtualCamera, self).__init__(*args, **kwargs)
 
@@ -186,6 +192,7 @@ class MovieVirtualCamera(BaseCamera):
 
     def _next_image(self):
         _, frame = self.capture.read()
+        self._pos_avi_ratio = self.capture.get(CAP_PROP_POS_AVI_RATIO)
         return frame
 
     def _time_stamp(self):
@@ -194,6 +201,14 @@ class MovieVirtualCamera(BaseCamera):
             return now - self._start_time
         time_s = self.capture.get(CAP_PROP_POS_MSEC) / 1e3
         return time_s
+
+    @property
+    def frames_per_sec(self):
+        return self._fps
+
+    @property
+    def fourcc(self):
+        return self._fourcc
 
     def is_last_frame(self):
         if self._has_end_of_file and self._frame_idx >= self._total_n_frames:

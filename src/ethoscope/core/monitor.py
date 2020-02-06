@@ -102,7 +102,7 @@ class Monitor(object):
             logging.info("Monitor starting a run")
             self._is_running = True
 
-            for i,(t, frame) in enumerate(self._camera):
+            for i, (t, frame) in enumerate(self._camera):
 
                 #logging.info("Monitor: frame: %d, time: %d" % (i, t))
                 if self._force_stop:
@@ -114,7 +114,7 @@ class Monitor(object):
                 self._frame_buffer = frame
                 #logStr = "Monitor: frame: %d, time: %d" % (i, t)
                 empty_cnt = 0
-                for j,track_u in enumerate(self._unit_trackers):
+                for j, track_u in enumerate(self._unit_trackers):
                     data_rows = track_u.track(t, frame)
                     if len(data_rows) == 0:
                         self._last_positions[track_u.roi.idx] = []
@@ -145,7 +145,7 @@ class Monitor(object):
                     result_writer.flush(t, frame)
 
                 if drawer is not None:
-                    drawer.draw(frame, self._last_positions, self._unit_trackers)
+                    drawer.draw(frame, t, self._last_positions, self._unit_trackers)
                 self._last_t = t
 
         except Exception as e:
