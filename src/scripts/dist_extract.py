@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 """
  This script extracts a table of the moved distance values of all ROIs for every sample times
  (movie frame times) out of the sqlite result database produced by ethoscope.
@@ -8,46 +9,61 @@
 __author__ = 'lukas'
 import logging
 import sqlite3
+import sys
+from argparse import ArgumentParser
 
-OUTPUT_DATA_DIR = "/home/lukas/tmp/ethoscope/"
-OUTPUT_DB = OUTPUT_DATA_DIR + "results.db"
+def main(argv):
 
-conn = sqlite3.connect(OUTPUT_DB)
-c = conn.cursor()
+  parser = ArgumentParser(description='Extract a table of the moved distance values of all ROIs ' +
+                                      'for every sample times (movie frame times) out of ' +
+                                      'the sqlite result database produced by ethoscope.')
+  parser.add_argument("-i", "--input-db", dest="db_filename",
+                      help="Connect to Sqlite DB file DB_FILENAME.")
 
-# create a list of all rois sorted by their value field
-rois = []
-sql_rois = 'SELECT roi_idx,roi_value FROM ROI_MAP'
-c.execute(sql_rois)
-for row in c:
-  rois.append((row))
+  args = parser.parse_args()
 
-# sort by the roi_value field
-sorted(rois, key=lambda a: a[1])
+  #OUTPUT_DATA_DIR = "/home/lukas/tmp/ethoscope/"
+  #OUTPUT_DB = OUTPUT_DATA_DIR + "results.db"
+  #OUTPUT_DB = OUTPUT_DATA_DIR + "results20200205.db"
 
-# query from ROI_1 a list of all sample times.
-sql = "SELECT GROUP_CONCAT(ROI_1.t) FROM ROI_1"
-c.execute(sql)
-sample_times = map(int, c.fetchone()[0].split(','))
+  conn = sqlite3.connect(args.db_filename)
+  c = conn.cursor()
 
-caption_str = 'time [ms]'
-for roi in rois:
-  caption_str += (', %d' % roi[1])
-print(caption_str)
+  # create a list of all rois sorted by their value field
+  rois = []
+  sql_rois = 'SELECT roi_idx,roi_value FROM ROI_MAP'
+  c.execute(sql_rois)
+  for row in c:
+    rois.append((row))
 
-# retrieve the "moved distance value" for every sample time and every roi
-#
-for t in sample_times:
-  col_dist_of_rois = ("%s" % (t))
+  # sort by the roi_value field
+  sorted(rois, key=lambda a: a[1])
+
+  # query from ROI_1 a list of all sample times.
+  sql = "SELECT GROUP_CONCAT(ROI_1.t) FROM ROI_1"
+  c.execute(sql)
+  sample_times = map(int, c.fetchone()[0].split(','))
+
+  caption_str = 'time [ms]'
   for roi in rois:
-    roi_tbl_name = ("ROI_%d" % roi[0])
-    sql = ("SELECT t,xy_dist_log10x1000 FROM %s WHERE t = %d" % (roi_tbl_name, t))
-    c.execute(sql)
-    col_dist_of_rois += (", %d" % (c.fetchone()[1]))
+    caption_str += (', %d' % roi[1])
+  print(caption_str)
 
-  print(col_dist_of_rois)
+  # retrieve the "moved distance value" for every sample time and every roi
+  #
+  for t in sample_times:
+    col_dist_of_rois = ("%s" % (t))
+    for roi in rois:
+      roi_tbl_name = ("ROI_%d" % roi[0])
+      sql = ("SELECT t,xy_dist_log10x1000 FROM %s WHERE t = %d" % (roi_tbl_name, t))
+      c.execute(sql)
+      col_dist_of_rois += (", %d" % (c.fetchone()[1]))
+
+    print(col_dist_of_rois)
 
 
-conn.close()
+  conn.close()
 
+if __name__ == "__main__":
+    main(sys.argv)
 
