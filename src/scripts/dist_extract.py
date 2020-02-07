@@ -17,7 +17,7 @@ def main(argv):
   parser = ArgumentParser(description='Extract a table of the moved distance values of all ROIs ' +
                                       'for every sample times (movie frame times) out of ' +
                                       'the sqlite result database produced by ethoscope.')
-  parser.add_argument("-i", "--input-db", dest="db_filename",
+  parser.add_argument("-i", "--input-db", dest="db_filename", required=True,
                       help="Connect to Sqlite DB file DB_FILENAME.")
 
   args = parser.parse_args()
