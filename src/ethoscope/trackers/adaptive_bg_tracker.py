@@ -52,6 +52,7 @@ class ObjectModel(object):
     @property
     def is_ready(self):
         return self._is_ready
+
     @property
     def features_header(self):
         return self._features_header
@@ -288,8 +289,8 @@ class AdaptiveBGModel(BaseTracker):
 
     def __del__(self):
         # L. Zi.: for closing video output file when doing single roi processing debug video
-        #if self._dbg_roi_video_writer is not None:
-        #    self._dbg_roi_video_writer.release()
+        if self._dbg_roi_video_writer is not None:
+            self._dbg_roi_video_writer.release()
         pass
 
     # L. Zi.: these two methods are probably not necessary...
@@ -432,10 +433,13 @@ class AdaptiveBGModel(BaseTracker):
         is_ambiguous = False
 
         if  prop_fg_pix > self._max_area:
+            # if non-black pixel count in foreground is bigger than the allowed maximum
+            # (five times the expected animal size)
             self._bg_model.increase_learning_rate()
             raise NoPositionError
 
         if  prop_fg_pix == 0:
+            # if no non-black pixel in foreground is found
             self._bg_model.increase_learning_rate()
             raise NoPositionError
 
@@ -447,10 +451,12 @@ class AdaptiveBGModel(BaseTracker):
         contours = [cv2.approxPolyDP(c, 1.2, True) for c in contours]
 
         if len(contours) == 0:
+            # if no contour around the non-black foreground pixels may be detected
             self._bg_model.increase_learning_rate()
             raise NoPositionError
 
         elif len(contours) > 1:
+            # if more than a single contour is found
             if not self.fg_model.is_ready:
                 raise NoPositionError
             # hulls = [cv2.convexHull( c) for c in contours]
