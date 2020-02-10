@@ -21,9 +21,14 @@ from argparse import ArgumentParser
 
 def main(argv):
 
-  parser = ArgumentParser(description=' ' +
-                                      'for every sample times (movie frame times) out of ' +
-                                      'the sqlite result database produced by ethoscope.')
+  parser = ArgumentParser(description='Runs an Ethoscope machinery on the given video file,' +
+                                      ' which is meant to be a recording of single daphnia moving' +
+                                      ' in a bunch of wells.' +
+                                      ' The area of each well is determined by non-black regions' +
+                                      ' in the supplied regions of interest (ROI) image file.' +
+                                      ' Optionally an output video may be produced, documenting the ' +
+                                      ' detection of animals.'
+                         )
   parser.add_argument("-i", "--input-video", dest="inp_video_filename", required=True,
                       help="The video file to be processed.", metavar='<input video filename>')
   parser.add_argument("-o", "--output-db", dest="db_filename", required=True,
