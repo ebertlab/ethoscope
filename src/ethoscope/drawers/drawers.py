@@ -1,5 +1,6 @@
 __author__ = 'quentin'
 
+import logging
 import cv2
 try:
     from cv2.cv import CV_FOURCC as VideoWriter_fourcc
@@ -40,8 +41,11 @@ class BaseDrawer(object):
             cv2.namedWindow(self._window_name, cv2.WINDOW_NORMAL | cv2.WINDOW_KEEPRATIO)
             cv2.resizeWindow(self._window_name, framesWinSizeX, framesWinSizeY)
         self._last_drawn_frame = None
+        # L. Zi.: the bounding box around all rois
+        self._rois_bounding_box = [10000, 0]
+        self._rois_bounding_box_found = False
 
-    def _annotate_frame(self,img, positions, tracking_units):
+    def _annotate_frame(self, img, positions, tracking_units):
         """
         Abstract method defining how frames should be annotated.
         The `img` array, which is passed by reference, is meant to be modified by this method.
@@ -73,13 +77,10 @@ class BaseDrawer(object):
         :type tracking_units: list(:class:`~ethoscope.core.tracking_unit.TrackingUnit`)
         :return:
         """
-
+        self._t = t
         self._last_drawn_frame = img.copy()
 
         self._annotate_frame(self._last_drawn_frame, positions, tracking_units)
-        # L. Zi., print frame time
-        cv2.putText(self._last_drawn_frame, str(t), (580, 3320),
-                        cv2.FONT_HERSHEY_DUPLEX, 2, (0, 0, 0))
 
         if self._draw_frames:
             cv2.namedWindow(self._window_name, cv2.WINDOW_NORMAL | cv2.WINDOW_KEEPRATIO)
@@ -144,8 +145,10 @@ class DefaultDrawer(BaseDrawer):
             #             cv2.FONT_HERSHEY_COMPLEX_SMALL, 1, (255,255,0))
             #cv2.putText(img, str(track_u.roi.idx), (round(x) + 5, round(y) - 5),
             #            cv2.FONT_HERSHEY_DUPLEX, 1, (255,255,0))
+            # L. Zi: annotate with roi value instead of index.
             cv2.putText(img, str(track_u.roi._value), (round(x) + 5, round(y) - 10),
                         cv2.FONT_HERSHEY_DUPLEX, 1, (255, 0, 0))
+
             black_colour = (0, 0, 0)
             roi_colour = (0, 255, 0)
             cv2.drawContours(img,[track_u.roi.polygon],-1, black_colour, 3, LINE_AA)
@@ -168,4 +171,24 @@ class DefaultDrawer(BaseDrawer):
                                    pos["phi"]), black_colour, 3, LINE_AA)
                 cv2.ellipse(img, ((pos["x"], pos["y"]), (pos["w"], pos["h"]),
                                    pos["phi"]), colour, 1, LINE_AA)
+
+
+            if not self._rois_bounding_box_found:
+              if round(x) < self._rois_bounding_box[0]:
+                  self._rois_bounding_box[0] = x
+              if round(y) > self._rois_bounding_box[1]:
+                  self._rois_bounding_box[1] = y
+
+        # L. Zi., print frame time
+        if not self._rois_bounding_box_found:
+          logging.info("Rois found from starting at x:%d upto y:%d"
+                       % (self._rois_bounding_box[0], self._rois_bounding_box[1]))
+        self._rois_bounding_box_found = True
+        xpos_time = 580
+        ypos_time = 3320
+        xpos_time = 0
+        ypos_time = 70
+        cv2.putText(self._last_drawn_frame, str(self._t),
+                    (self._rois_bounding_box[0], self._rois_bounding_box[1] + 50),       
+                    cv2.FONT_HERSHEY_DUPLEX, 2, (0, 0, 0))        
 
