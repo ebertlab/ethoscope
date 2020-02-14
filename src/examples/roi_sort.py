@@ -40,11 +40,13 @@ def main(argv):
   parser.add_argument("-b", "--single-roi-video", dest="single_roi_video_filename",
                       help="For debugging purpose a video file of a single roi may be produced.",
                       metavar='<single roi video filename>')
+  parser.add_argument("-n", "--single-roi-video-roi-nbr", dest="single_roi_video_roi_nbr", type=int, default=0,
+                      help="Select the number of the roi to produce a debugging video from." +
+                           " If not specified, roi 0 is the default.",
+                      metavar='<single roi video roi number>')
 
   args = parser.parse_args()
 
-  # TODO: make this a command line option  
-  dbg_single_roi_number = 47
 
   # change these variables according to how you name your input/output files
   INPUT_DATA_DIR = "/home/lukas/tmp/AAA-Video/"
@@ -95,7 +97,7 @@ def main(argv):
   logging.info("reading roi mask")
   roi_builder = ImgMaskROIBuilder(args.roi_filename)
 
-  logging.info("building rois")
+  logging.info("building rois from \"%s\"" % args.roi_filename)
   roi_builder.build(None)  # use image already loaded by ImgMaskROIBuilder instance
   rois = roi_builder.gridSort(50, 50)
 
@@ -118,7 +120,7 @@ def main(argv):
   #monitor = Monitor(cam, AdaptiveBGModel, rois)
   if args.single_roi_video_filename is not None:
     monitor = Monitor(cam, AdaptiveBGModel, rois,
-                      dbg_roi_value=dbg_single_roi_number,
+                      dbg_roi_value=args.single_roi_video_roi_nbr,
                       dbg_roi_video_filename=args.single_roi_video_filename)
   else:
     monitor = Monitor(cam, AdaptiveBGModel, rois)
