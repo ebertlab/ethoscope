@@ -32,12 +32,15 @@ class BaseROIBuilder(DescribedObject):
         accum = []
         if hasattr(self, '_mask'):
             # e.g. ImgMaskROIBuilder already has loaded an image, use that one
+            logging.info("Roi builder: taking roi mask from previously built one.")
             accum = self._mask
         elif isinstance(input, np.ndarray):
             # image is handed over as input parameter
+            logging.info("Roi builder: taking roi mask image from parameter.")
             accum = np.copy(input)
         else:
             # camera object is handed over as input, use median of the first five frames
+            logging.info("Roi builder: creating roi mask image from beginning of input video.")
             for i, (_, frame) in enumerate(input):
                 accum.append(frame)
                 if i  >= 5:
