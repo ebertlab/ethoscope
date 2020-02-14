@@ -13,8 +13,10 @@ except ImportError:
     from cv2 import IMREAD_GRAYSCALE as IMG_READ_FLAG_GREY
     from cv2 import RETR_EXTERNAL, CHAIN_APPROX_SIMPLE
 
+import os
 import logging
 import numpy as np
+from ethoscope.utils.debug import EthoscopeException
 from ethoscope.roi_builders.roi_builders import BaseROIBuilder
 from ethoscope.core.roi import ROI
 
@@ -45,9 +47,11 @@ class ImgMaskROIBuilder(BaseROIBuilder):
 
     """
 
-
+    if not os.path.exists(mask_path):
+      raise EthoscopeException("'%s' does not exist. No such file" % mask_path)
     self._mask = cv2.imread(mask_path, IMG_READ_FLAG_GREY)
     self._rois = []
+    self._rois_bounding_box = None
 
     super(ImgMaskROIBuilder,self).__init__()
 
@@ -72,10 +76,10 @@ class ImgMaskROIBuilder(BaseROIBuilder):
       contours, _ = cv2.findContours(thresh_mask, RETR_EXTERNAL, CHAIN_APPROX_SIMPLE)
 
     contour_cnt = len(contours)
-    logging.info("ImgMaskROIBuilder: found %s contours" % contour_cnt)
+    #logging.info("ImgMaskROIBuilder: found %s contours" % contour_cnt)
     tmp_mask = np.zeros_like(self._mask)
-    for i,c in enumerate(contours):
-      #logging.debug("ROI Contour %s: %s", i, [c]);
+    for i, c in enumerate(contours):
+      #logging.info("ROI Contour %s: %s", i, c);
       if len(c) >= 3:
         # skip contours with less than 3 elements
         cv2.drawContours(tmp_mask, [c], -1, 255)
@@ -84,7 +88,6 @@ class ImgMaskROIBuilder(BaseROIBuilder):
         #print("ROI %s value: %s" % (i, value))
         #if (value == 255):
         #  value = None
-
         self._rois.append(ROI(c, i + 1, value))
 
     logging.info("ImgMaskROIBuilder: %s valid contours" % len(self._rois))
