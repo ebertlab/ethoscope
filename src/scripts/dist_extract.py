@@ -22,6 +22,9 @@ def main(argv):
   parser.add_argument("-p", "--animal-pos", dest="animal_pos", required=False,
                       action='store_true',
                       help="Return positions of animals instead of their moved distance.")
+  parser.add_argument("-d", "--drop-frame", dest="drop_frame", required=False,
+                      type=int, default=0, metavar='<n>',
+                      help="Drop every n-th frame.")
 
   args = parser.parse_args()
 
@@ -54,7 +57,15 @@ def main(argv):
 
   # retrieve the "moved distance value" for every sample time and every roi
   #
+  drop_cnt = 0;
   for t in sample_times:
+    if args.drop_frame > 0:
+      if drop_cnt >= args.drop_frame:
+        drop_cnt = 0
+      else:
+        drop_cnt += 1
+        continue
+      
     if args.animal_pos:
       col_pos_of_rois = ("%s" % (t))
       for roi in rois:
