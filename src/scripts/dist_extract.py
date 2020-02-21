@@ -19,6 +19,9 @@ def main(argv):
                                       'the sqlite result database produced by ethoscope.')
   parser.add_argument("-i", "--input-db", dest="db_filename", required=True,
                       help="Connect to Sqlite DB file DB_FILENAME.")
+  parser.add_argument("-p", "--animal-pos", dest="animal_pos", required=False,
+                      action='store_true',
+                      help="Return positions of animals instead of their moved distance.")
 
   args = parser.parse_args()
 
@@ -52,15 +55,23 @@ def main(argv):
   # retrieve the "moved distance value" for every sample time and every roi
   #
   for t in sample_times:
-    col_dist_of_rois = ("%s" % (t))
-    for roi in rois:
-      roi_tbl_name = ("ROI_%d" % roi[0])
-      sql = ("SELECT t,xy_dist_log10x1000 FROM %s WHERE t = %d" % (roi_tbl_name, t))
-      c.execute(sql)
-      col_dist_of_rois += (", %d" % (c.fetchone()[1]))
-
-    print(col_dist_of_rois)
-
+    if args.animal_pos:
+      col_pos_of_rois = ("%s" % (t))
+      for roi in rois:
+        roi_tbl_name = ("ROI_%d" % roi[0])
+        sql = ("SELECT t,x,y FROM %s WHERE t = %d" % (roi_tbl_name, t))
+        c.execute(sql)
+        _, x, y = c.fetchone()
+        col_pos_of_rois += (", \"%d+%di\"" % (x, y))
+      print(col_pos_of_rois)
+    else:
+      col_dist_of_rois = ("%s" % (t))
+      for roi in rois:
+        roi_tbl_name = ("ROI_%d" % roi[0])
+        sql = ("SELECT t,xy_dist_log10x1000 FROM %s WHERE t = %d" % (roi_tbl_name, t))
+        c.execute(sql)
+        col_dist_of_rois += (", %d" % (c.fetchone()[1]))
+      print(col_dist_of_rois)
 
   conn.close()
 
